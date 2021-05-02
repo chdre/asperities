@@ -132,3 +132,46 @@ def shuffle_asperities(image,
                 'Non-overlap not possible when shuffling asperities. Try increasing max_iter.')
 
     return asperities.sum(axis=0)
+
+
+def add_asperities(asperities: np.ndarray,
+                   overlap: bool = False,
+                   overlap_threshold: int = 25,
+                   seed: int = 1):
+    """ Add asperities along the first axis.
+
+    If overlap is False the array will shuffle whichever asperity that is
+    causing the overlapping. The shuffling will continue maximum of
+    overlap_threshold steps.
+
+    Arguments:
+        asperities: Images along the second and third axis. First axis contains the number of images.
+        overlap: Whether to allow asperities to overlap when adding.
+        overlap_threshold: Maximum tries for overlap shuffling.
+        seed: Seed for shuffling asperity.
+
+    Raises:
+        ValueError: If shuffling does not resolve issue of overlapping.
+
+    Returns:
+        sum_asperities: Summed array.
+    """
+    if overlap:
+        sum_asperities = asperities.sum(axis=0)
+    else:
+        N = asperities.shape[0]
+        for i in range(N):
+            tmp = asperities[:i + 1, :, :].sum(axis=0)
+            c = 1
+            while np.any(tmp > 1) and c <= overlap_threshold:
+                asperities[i, :, :] = shuffle_asperity(
+                    asperities[i, :, :], seed=int(seed * c))
+                tmp = asperities[:i + 1, :, :].sum(axis=0)
+                c += 1
+
+            if np.any(tmp > 1):
+                tmp = np.ones((asperities.shape[1], asperities.shape[2]))
+                break
+        sum_asperities = tmp
+
+    return sum_asperities
