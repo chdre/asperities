@@ -1,4 +1,4 @@
-import scipy as scpi
+import scipy.ndimage as scpi
 import numpy as np
 
 
