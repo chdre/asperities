@@ -2,8 +2,7 @@
 Extracting, shuffling and building new geometries based on input image with asperities. 
 
 # Requirements
-- Python
-- Scipy
+
 
 # Usage
 ```
