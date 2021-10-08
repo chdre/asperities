@@ -178,3 +178,50 @@ def add_asperities(asperities: np.ndarray,
         sum_asperities = tmp
 
     return sum_asperities
+
+# @staticmethod
+
+
+def closer(image, step, axes):
+    N = image.shape[0]
+    assert N == 2, "Method closer only has support for two voids"
+    image[0] = np.roll(image[0], step, axes)
+    image[1] = np.roll(image[1], -np.asarray(step), axes)
+
+    image = add_asperities(image)
+
+    return image
+
+
+def move_asperities(image, step, axes, method='closer'):
+    """ Moves asperities along given axes. If the goal is to move multiple
+    voids independetly of one another, then step and axes can be lists.
+
+    :param image: Image depecting boolean geometry containing one or more
+                  voids/asperities
+    :type image: ndarray
+    :param step: Step length along axes.
+    :type step: array_like
+    :param axes: List of integer(s) telling which axes to move void/asperity
+                 along.
+    :type axes: array_like
+    :param method: Decide how to move voids
+    :type method: str
+    :returns: asperities_moved
+    :rtype: ndarray
+    """
+    lw, num = scpi.measurements.label(image)
+
+    if num > 1:
+        image = get_asperities(image)
+
+    if method == 'closer':
+        image[0] = np.roll(image[0], step, axes)
+        image[1] = np.roll(image[1], -np.asarray(step), axes)
+
+    # func = {'closer': closer(image, step, axes)}
+    # new_image = func[method]
+
+    image = add_asperities(image)
+
+    return new_image
