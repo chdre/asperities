@@ -8,17 +8,19 @@ pip install git+https://github.com/chdre/asperities
 ```
 
 # Usage
+
 ```
 import asperities
-
 unique_asperities = asperities.get_asperities(image)
 ```
+
+# Examples
 Shuffle a single asperity in an image. Useful to generate new geometries.
 ```
-shuffled_asperity = asperitiesshuffle_asperity(image)
+shuffled_asperity = asperities.shuffle_asperity(image)
 ```
 
-Shuffle asperities in an image
+Shuffle multiple asperities in an image:
 ```
 shuffled_asperities = asperities.shuffle_asperities(image)
 ```
