@@ -1,22 +1,26 @@
 # Asperities
-Extracting, shuffling and building new geometries based on input image with asperities. 
+Extracting and shuffling voids/asperities in images. Designed for a projected where 2D images represent material structures of quartz. Shuffling allows for creating new material structures. 
 
-# Requirements
-
+# Install
+Install using pip:
+```
+pip install git+https://github.com/chdre/asperities
+```
 
 # Usage
+
 ```
-from asperities import *
-
-unique_asperities = get_asperities(image)
-
-# Shuffle a single asperity in an image. Useful to generate new geometries.
-shuffled_asperity = shuffle_asperity(image)
-
-# Shuffle asperities in an image
-shuffled_asperities = shuffle_asperities(image)
+import asperities
+unique_asperities = asperities.get_asperities(image)
 ```
 
-# To-do
-- Object orientation
-- Installation
+# Examples
+Shuffle a single asperity in an image. Useful to generate new geometries.
+```
+shuffled_asperity = asperities.shuffle_asperity(image)
+```
+
+Shuffle multiple asperities in an image:
+```
+shuffled_asperities = asperities.shuffle_asperities(image)
+```
