@@ -155,6 +155,9 @@ def add_asperities(asperities: np.ndarray,
 
     Returns:
         sum_asperities: Summed array.
+
+    TO DO:
+        Add support for asperities being array_like, not just ndarray
     """
     if overlap:
         sum_asperities = asperities.sum(axis=0)
