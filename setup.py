@@ -5,7 +5,7 @@ with open('README.md', 'r') as infile:
 
 setuptools.setup(
     name='asperities',
-    version='0.1.2',
+    version='0.1.3',
     author='Christer Dreierstad',
     author_email='christerdr@outlook.com',
     description='Package for characterizing voids/asperities in geometries',
