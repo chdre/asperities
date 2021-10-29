@@ -251,3 +251,11 @@ class Asperities:
 
         if method == 'increase':
             pass
+
+    def update_asperities(self, array):
+        """Changes the asperities to input array.
+
+        :param array: Array representing the new asperities
+        :type array: ndarray
+        """
+        self.asperities = array
