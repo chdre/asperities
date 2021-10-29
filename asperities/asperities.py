@@ -88,13 +88,13 @@ class Asperities:
             image (arr): Shuffled image.
         """
         np.random.seed(seed)
-        Nx, Ny = self.image.shape * shuffle_factor
+        Nx, Ny = image.shape * shuffle_factor
         Nx, Ny = int(Nx), int(Ny)
         x, y = np.random.choice(
             range(-Nx, Nx), size=1)[0], np.random.choice(range(-Ny, Ny), size=1)[0]
-        self.image = np.roll(self.image, shift=(x, y), axis=(0, 1))
+        image = np.roll(image, shift=(x, y), axis=(0, 1))
 
-        return self.image
+        return image
 
     def shuffle_asperities(self,
                            overlap=False,
