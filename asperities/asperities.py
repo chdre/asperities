@@ -198,7 +198,7 @@ class Asperities:
 
         return image
 
-    def move_asperities(self, step, axes, method='closer'):
+    def move_asperities(self, step, axes, method='closer', **kwargs):
         """ Moves asperities along given axes. If the goal is to move multiple
         voids independetly of one another, then step and axes can be lists.
 
@@ -225,7 +225,7 @@ class Asperities:
         # func = {'closer': closer(image, step, axes)}
         # new_image = func[method]
 
-        new_image = self.add_asperities()
+        new_image = self.add_asperities(kwargs)
 
         return new_image
 
