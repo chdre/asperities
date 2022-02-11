@@ -261,7 +261,7 @@ class Asperities:
         self.asperities = array
 
     @staticmethod
-    def get_center_of_mass(asperities):
+    def center_of_mass(asperities, max_search=100):
         """Calculates the center of mass (COM) for each asperity.
 
         :param asperities: Array containing asperities along axis 0.
@@ -271,12 +271,52 @@ class Asperities:
         """
 
         labeled, n_labels = ndimage.label(asperities)
-        com = ndimage.center_of_mass(
-            asperities, labeled, np.arange(1, n_labels))
+
+        com_original = ndimage.center_of_mass(asperities, asperities, 1)
+
+        rolled = 0
+        c = 0
+        while n_labels > 1 and c < max_search:
+            # Roll array if the asperity is split, until it is no longer split,
+            # if possible. Could be that there is a void spanning entire space
+            rolled += 2
+            asperities = np.roll(asperities, (rolled, rolled), axis=(0, 1))
+            labeled, n_labels = ndimage.label(asperities)
+
+            c += 1
+
+        com = ndimage.center_of_mass(asperities, asperities, 1)
+
+        assert isinstance(com, tuple), \
+            (f'com is not of type tuple, but {type(com)}')
+        if c < max_search and n_labels > 1:
+            com = np.array(com) - rolled
+        else:
+            com = com_original
 
         return com
 
-    def radial_distribution(self, dr=None, pbc=True, tile_factor=(1, 1),
+    def get_center_of_masses(self, pbc=True, tile_factor=(1, 1)):
+        """Fetch the center of mass for each void in the asperity.
+
+        :param pbc: Whether or not to account for periodic boundary conditions.
+                    Defaults to True.
+        :type pbc: bool
+        :param tile_factor: If tiling the asperities we tile by these factors.
+                            I.e. the factors to multiply the image along
+                            respective axes. Defaults to (1, 1), i.e. no tiling.
+        :returns com: Center of masses for asperity
+        :rtype com: ndarray
+        """
+        asp = self.asperities.copy()  # To avoid overwriting
+        if pbc:
+            asp = np.tile(asp, tile_factor)
+
+        com = np.array([self.center_of_mass(a) for a in asp])
+
+        return com
+
+    def radial_distribution(self, dr, pbc=True, tile_factor=(1, 1),
                             prob_density=True):
         """Finds the radial distribution of voids by the center of mass for each
         separate void. If pbc (periodic boundary conditions) is true the image
@@ -314,27 +354,23 @@ class Asperities:
         assert not self.allow_split, \
             'self.allow_split must be False, else radial_distribution will produce bad results'
 
-        asp = self.image.copy()  # To avoid overwriting
+        asp = self.asperities.copy()  # To avoid overwriting
 
         if pbc:
             asp = np.tile(asp, tile_factor)
 
-        labeled_image, n_labels = ndimage.label(asp)
-        labels = np.arange(1, n_labels)
-
+        labels = np.arange(1, asp.shape[0])
         # Max radius is the the one which spans from origo to opposite vertice
-        max_radius = np.linalg.norm(asp.shape)
+        max_radius = np.linalg.norm(asp.shape[1:])
 
-        if dr is None:
-            dr = max_radius / labels.shape[0]
         shells = np.concatenate(
             (np.arange(0, max_radius, dr), np.array([max_radius])), axis=0)
 
         # Find which asperity sits in what shell
-        com = np.array(self.get_center_of_mass(asp))
+        com = np.array([self.center_of_mass(a) for a in asp])
 
         # COM POV: counter for the other COMs in own shells
-        shells_counter = np.zeros((shells.shape[0]))
+        shells_counter = np.zeros((shells.shape[0] - 1))
 
         # Checking each COM (i.e. each asperity) seperately
         for i, c in enumerate(com):
@@ -342,11 +378,9 @@ class Asperities:
             dist = np.linalg.norm(
                 np.delete(com, i, axis=0) - c[np.newaxis, :], axis=1)
 
-            for j in range(shells.shape[0] - 1):
-                # Find how many asperities are in each shell from POV of specific asperit
-                asp_in_shell = np.logical_and(
-                    dist >= shells[j], dist < shells[j + 1]).sum()
-                shells_counter[j] += asp_in_shell
+            # Find how many asperities are in each shell from POV of specific asperity
+            shells_counter += np.array([np.logical_and(dist >= shells[j], dist <
+                                       shells[j + 1]).sum() for j in range(shells.shape[0] - 1)])
 
         if prob_density:
             # Normalizing and dividing by the width of the spherical shells.
