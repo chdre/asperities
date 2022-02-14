@@ -17,7 +17,11 @@ class Asperities:
         Returns:
             asperities (arr): Array containing all the asperities.
         """
-        self.lw, self.num = ndimage.label(image)
+        # We also consider asperities that are diagonally touching to be a
+        # a single void. The line below ensures this is the case.
+        s = ndimage.generate_binary_structure(2, 2)
+
+        self.lw, self.num = ndimage.label(image, structure=s)
         self.allow_split = allow_split
         self.image = image
         self.asperities = None
