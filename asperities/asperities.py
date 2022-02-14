@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Asperities:
-    def __init__(self, image, allow_split=False):
+    def __init__(self, image, allow_split=True):
         """Find the asperities of a given image.
 
         Arguments:
@@ -24,6 +24,10 @@ class Asperities:
 
         roll_label = [[], []]
 
+        # Correct for PBC, give correct name to labeled image. From POV of x = 0
+        # we look at x = N_x to check if there is also an asperity there, if
+        # there is, we know that these are connected and we gather them both
+        # under the same label
         for i in range(self.lw[:, 0].shape[0]):
             if self.lw[i, 0] != 0 and self.lw[i, -1] != 0:
                 self.lw[self.lw == self.lw[i, -1]] = self.lw[i, 0]
@@ -68,7 +72,8 @@ class Asperities:
                             c += 1
 
             self.asperities[i, :, :] = img / np.max(img)
-            assert not np.any(self.asperities > 1), 'Overlapping asperities'
+            assert not np.any(self.asperities >
+                              1), 'Overlapping asperities'
 
     def __call__(self):
         return self.asperities
@@ -222,9 +227,6 @@ class Asperities:
             self.asperities[1] = np.roll(
                 self.asperities[1], -np.asarray(step), axes)
 
-        # func = {'closer': closer(image, step, axes)}
-        # new_image = func[method]
-
         new_image = self.add_asperities(kwargs)
 
         return new_image
@@ -261,11 +263,13 @@ class Asperities:
         self.asperities = array
 
     @staticmethod
-    def center_of_mass(asperities, max_search=100):
+    def center_of_mass(asperities, max_search):
         """Calculates the center of mass (COM) for each asperity.
 
         :param asperities: Array containing asperities along axis 0.
         :type asperities. ndarray
+        :param max_search: Maximum number of searches when rolling asperites.
+        :type max_search: int
         :returns com: Array containing COM coordinates
         :rtype com: ndarray
         """
@@ -274,29 +278,31 @@ class Asperities:
 
         com_original = ndimage.center_of_mass(asperities, asperities, 1)
 
-        rolled = 0
+        roll = 0
         c = 0
+        asperities_copy = asperities  # Create copy to use for rolling
         while n_labels > 1 and c < max_search:
             # Roll array if the asperity is split, until it is no longer split,
             # if possible. Could be that there is a void spanning entire space
-            rolled += 2
-            asperities = np.roll(asperities, (rolled, rolled), axis=(0, 1))
+            roll += 1
+            asperities = np.roll(asperities_copy, (roll, roll), axis=(0, 1))
             labeled, n_labels = ndimage.label(asperities)
 
             c += 1
 
-        com = ndimage.center_of_mass(asperities, asperities, 1)
-
-        assert isinstance(com, tuple), \
-            (f'com is not of type tuple, but {type(com)}')
-        if c < max_search and n_labels > 1:
-            com = np.array(com) - rolled
-        else:
+        if c >= max_search and n_labels > 1:
+            # If we did not find a new one we assume the asperity stretches
+            # across all boundaries
             com = com_original
+        else:
+            # If the loop above broke naturally we use the last created rolled
+            # asperities object and unroll the COM
+            com = ndimage.center_of_mass(asperities, asperities, 1)
+            com = np.array(com) - roll
 
         return com
 
-    def get_center_of_masses(self, pbc=True, tile_factor=(1, 1)):
+    def get_center_of_masses(self, pbc=True, tile_factor=(1, 1), max_search=100):
         """Fetch the center of mass for each void in the asperity.
 
         :param pbc: Whether or not to account for periodic boundary conditions.
@@ -305,6 +311,9 @@ class Asperities:
         :param tile_factor: If tiling the asperities we tile by these factors.
                             I.e. the factors to multiply the image along
                             respective axes. Defaults to (1, 1), i.e. no tiling.
+        :param max_search: Maximum number of searches when rolling asperites.
+                           Defaults to 100.
+        :type max_search: int
         :returns com: Center of masses for asperity
         :rtype com: ndarray
         """
@@ -312,12 +321,12 @@ class Asperities:
         if pbc:
             asp = np.tile(asp, tile_factor)
 
-        com = np.array([self.center_of_mass(a) for a in asp])
+        com = np.array([self.center_of_mass(a, max_search) for a in asp])
 
         return com
 
     def radial_distribution(self, dr, pbc=True, tile_factor=(1, 1),
-                            prob_density=True):
+                            prob_density=True, max_search=100):
         """Finds the radial distribution of voids by the center of mass for each
         separate void. If pbc (periodic boundary conditions) is true the image
         will be repeated to account for periodicity. If we do not account for
@@ -345,14 +354,17 @@ class Asperities:
                              Should be set to False if one is working with
                              multiple inputs.
         :type prob_density: bool
+        :param max_search: Maximum number of searches when rolling asperites
+                           when finding center of masses. Defaults to 100.
+        :type max_search: int
         :returns shell_counter: Number of asperities in each shell, or
                                 probability density.
         :rtype shell_counter: np.ndarray
         :returns shells: Interval of shells.
         :rtype shells: np.ndarray
         """
-        assert not self.allow_split, \
-            'self.allow_split must be False, else radial_distribution will produce bad results'
+        # assert not self.allow_split, \
+        #     'self.allow_split must be False, else radial_distribution will produce bad results'
 
         asp = self.asperities.copy()  # To avoid overwriting
 
@@ -367,7 +379,7 @@ class Asperities:
             (np.arange(0, max_radius, dr), np.array([max_radius])), axis=0)
 
         # Find which asperity sits in what shell
-        com = np.array([self.center_of_mass(a) for a in asp])
+        com = np.array([self.center_of_mass(a, max_search) for a in asp])
 
         # COM POV: counter for the other COMs in own shells
         shells_counter = np.zeros((shells.shape[0] - 1))
