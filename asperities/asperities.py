@@ -299,6 +299,14 @@ class Asperities:
             # asperities object and unroll the COM
             com = ndimage.center_of_mass(asperities, asperities, 1)
             com = np.array(com) - roll
+            if com[0] > asperities.shape[0]:
+                com[0] -= asperities.shape[0]
+            if com[0] < -asperities.shape[0]:
+                com[0] += asperities.shape[0]
+            if com[1] > asperities.shape[1]:
+                com[1] -= asperities.shape[1]
+            if com[1] < -asperities.shape[1]:
+                com[1] += asperities.shape[1]
 
         return com
 
@@ -363,16 +371,13 @@ class Asperities:
         :returns shells: Interval of shells.
         :rtype shells: np.ndarray
         """
-        # assert not self.allow_split, \
-        #     'self.allow_split must be False, else radial_distribution will produce bad results'
-
         asp = self.asperities.copy()  # To avoid overwriting
 
         if pbc:
             asp = np.tile(asp, tile_factor)
 
-        labels = np.arange(1, asp.shape[0])
         # Max radius is the the one which spans from origo to opposite vertice
+        # i.e. sqrt( (0, 0)**2 + (200, 100) ** 2 )
         max_radius = np.linalg.norm(asp.shape[1:])
 
         shells = np.concatenate(
