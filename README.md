@@ -1,5 +1,5 @@
 # Asperities
-Extracting and shuffling voids/asperities in images. Designed for a projected where 2D images represent material structures of quartz. Shuffling allows for creating new material structures. 
+Extracting and shuffling voids/asperities in images. Designed for a projected where 2D images represent material structures with voids. Shuffling allows for creating new material structures. 
 
 # Install
 Install using pip:
